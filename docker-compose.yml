@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "file:/app/data/conso.db"
+      UPLOADS_DIR: "/app/data/uploads"
+    volumes:
+      - conso_data:/app/data
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    # Pour un accès via Internet, pointez votre Nginx Proxy Manager vers ce
+    # service (réseau Docker partagé ou port publié ci-dessus selon votre
+    # configuration NPM existante).
+
+volumes:
+  conso_data:

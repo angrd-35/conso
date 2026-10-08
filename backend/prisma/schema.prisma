@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Vehicle {
+  id            String    @id @default(cuid())
+  name          String
+  brand         String?
+  model         String?
+  photoFilename String?
+  archived      Boolean   @default(false)
+  defaultFuelId String?
+  defaultFuel   FuelType? @relation(fields: [defaultFuelId], references: [id])
+  fillUps       FillUp[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model FuelType {
+  id              String             @id @default(cuid())
+  name            String             @unique
+  ethanolRate     Float?
+  components      FillUpComponent[]
+  vehicles        Vehicle[]
+}
+
+model FillUp {
+  id               String            @id @default(cuid())
+  vehicleId        String
+  vehicle          Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date             DateTime
+  odometerKm       Float
+  station          String?
+  fullTank         Boolean           @default(true)
+  remainingRangeKm Float?
+  createdAt        DateTime          @default(now())
+  components       FillUpComponent[]
+
+  @@index([vehicleId, date])
+}
+
+model FillUpComponent {
+  id             String   @id @default(cuid())
+  fillUpId       String
+  fillUp         FillUp   @relation(fields: [fillUpId], references: [id], onDelete: Cascade)
+  fuelTypeId     String
+  fuelType       FuelType @relation(fields: [fuelTypeId], references: [id])
+  quantityLiters Float
+  pricePerLiter  Float
+}
