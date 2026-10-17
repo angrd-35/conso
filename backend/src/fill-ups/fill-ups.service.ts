@@ -94,36 +94,47 @@ export class FillUpsService {
       let imported = 0;
       const fuelTypeCache = new Map<string, string>();
 
+      // Plusieurs lignes avec la même date et le même kilométrage forment un plein multi-carburant.
+      const groups = new Map<string, BulkImportFillUpsDto['items']>();
       for (const item of dto.items) {
-        const key = item.fuelTypeName.trim().toLowerCase();
-        let fuelTypeId = fuelTypeCache.get(key);
-        if (!fuelTypeId) {
-          const fuelType = await tx.fuelType.upsert({
-            where: { name: item.fuelTypeName.trim() },
-            update: {},
-            create: { name: item.fuelTypeName.trim() },
+        const key = `${item.date.slice(0, 10)}|${item.odometerKm}`;
+        const group = groups.get(key);
+        if (group) group.push(item);
+        else groups.set(key, [item]);
+      }
+
+      for (const items of groups.values()) {
+        const components: { fuelTypeId: string; quantityLiters: number; pricePerLiter: number }[] = [];
+        for (const item of items) {
+          const name = item.fuelTypeName.trim();
+          const key = name.toLowerCase();
+          let fuelTypeId = fuelTypeCache.get(key);
+          if (!fuelTypeId) {
+            const fuelType = await tx.fuelType.upsert({
+              where: { name },
+              update: {},
+              create: { name },
+            });
+            fuelTypeId = fuelType.id;
+            fuelTypeCache.set(key, fuelTypeId);
+          }
+          components.push({
+            fuelTypeId,
+            quantityLiters: item.quantityLiters,
+            pricePerLiter: item.pricePerLiter,
           });
-          fuelTypeId = fuelType.id;
-          fuelTypeCache.set(key, fuelTypeId);
         }
 
+        const first = items[0];
         await tx.fillUp.create({
           data: {
             vehicleId,
-            date: new Date(item.date),
-            station: item.station,
-            fullTank: item.fullTank ?? true,
-            remainingRangeKm: item.remainingRangeKm,
-            odometerKm: item.odometerKm,
-            components: {
-              create: [
-                {
-                  fuelTypeId,
-                  quantityLiters: item.quantityLiters,
-                  pricePerLiter: item.totalPrice / item.quantityLiters,
-                },
-              ],
-            },
+            date: new Date(first.date),
+            station: items.find((i) => i.station)?.station,
+            fullTank: items.every((i) => i.fullTank ?? true),
+            remainingRangeKm: items.find((i) => i.remainingRangeKm !== undefined)?.remainingRangeKm,
+            odometerKm: first.odometerKm,
+            components: { create: components },
           },
         });
         imported += 1;

@@ -77,7 +77,7 @@ export interface BulkFillUpItem {
   date: string
   odometerKm: number
   quantityLiters: number
-  totalPrice: number
+  pricePerLiter: number
   fullTank: boolean
   remainingRangeKm?: number
   station?: string

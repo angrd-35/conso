@@ -36,11 +36,11 @@ export class BulkFillUpItemDto {
   @IsPositive()
   quantityLiters!: number;
 
-  @ApiProperty({ example: 68.4 })
+  @ApiProperty({ description: 'Prix au litre (€)', example: 1.879 })
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
-  totalPrice!: number;
+  pricePerLiter!: number;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

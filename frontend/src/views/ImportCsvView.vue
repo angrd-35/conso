@@ -13,7 +13,7 @@ type FieldKey =
   | 'date'
   | 'odometerKm'
   | 'quantityLiters'
-  | 'totalPrice'
+  | 'pricePerLiter'
   | 'fuelTypeName'
   | 'fullTank'
   | 'remainingRangeKm'
@@ -23,7 +23,7 @@ const fields: { key: FieldKey; label: string; required: boolean }[] = [
   { key: 'date', label: 'Date', required: true },
   { key: 'odometerKm', label: 'Kilométrage', required: true },
   { key: 'quantityLiters', label: 'Quantité (L)', required: true },
-  { key: 'totalPrice', label: 'Prix total', required: true },
+  { key: 'pricePerLiter', label: 'Prix au litre', required: true },
   { key: 'fuelTypeName', label: 'Type de carburant', required: true },
   { key: 'fullTank', label: 'Plein complet', required: false },
   { key: 'remainingRangeKm', label: 'Km restants (jauge)', required: false },
@@ -36,7 +36,7 @@ const mapping = ref<Record<FieldKey, string>>({
   date: '',
   odometerKm: '',
   quantityLiters: '',
-  totalPrice: '',
+  pricePerLiter: '',
   fuelTypeName: '',
   fullTank: '',
   remainingRangeKm: '',
@@ -71,7 +71,7 @@ function autoGuessMapping() {
     date: ['date'],
     odometerKm: ['km', 'kilometrage', 'kilométrage', 'odometer', 'compteur'],
     quantityLiters: ['litres', 'liters', 'quantite', 'quantité', 'volume'],
-    totalPrice: ['prix', 'price', 'montant', 'total', 'cout', 'coût'],
+    pricePerLiter: ['prix', 'price', 'tarif', '€/l', 'eur/l'],
     fuelTypeName: ['carburant', 'fuel', 'type'],
     fullTank: ['plein', 'fulltank', 'complet'],
     remainingRangeKm: ['autonomie', 'jauge', 'restant', 'range'],
@@ -133,15 +133,15 @@ const parsedRows = computed<ParsedRow[]>(() => {
     if (odometerKm === null) errors.push('kilométrage invalide')
     const quantityLiters = parseNumber(row[mapping.value.quantityLiters] ?? '')
     if (quantityLiters === null) errors.push('quantité invalide')
-    const totalPrice = parseNumber(row[mapping.value.totalPrice] ?? '')
-    if (totalPrice === null) errors.push('prix invalide')
+    const pricePerLiter = parseNumber(row[mapping.value.pricePerLiter] ?? '')
+    if (pricePerLiter === null) errors.push('prix au litre invalide')
     const fuelTypeName = (row[mapping.value.fuelTypeName] ?? '').trim()
     if (!fuelTypeName) errors.push('type de carburant manquant')
     const remainingRangeKmRaw = mapping.value.remainingRangeKm ? row[mapping.value.remainingRangeKm] : undefined
     const remainingRangeKm = remainingRangeKmRaw ? parseNumber(remainingRangeKmRaw) ?? undefined : undefined
     const station = mapping.value.station ? row[mapping.value.station]?.trim() || undefined : undefined
 
-    if (errors.length || date === null || odometerKm === null || quantityLiters === null || totalPrice === null) {
+    if (errors.length || date === null || odometerKm === null || quantityLiters === null || pricePerLiter === null) {
       return { index, item: null, errors }
     }
 
@@ -152,7 +152,7 @@ const parsedRows = computed<ParsedRow[]>(() => {
         date,
         odometerKm,
         quantityLiters,
-        totalPrice,
+        pricePerLiter,
         fuelTypeName,
         fullTank: parseBoolean(mapping.value.fullTank ? row[mapping.value.fullTank] : undefined),
         remainingRangeKm,
@@ -223,7 +223,7 @@ function goToVehicle() {
                 <th class="p-2">Date</th>
                 <th class="p-2">Km</th>
                 <th class="p-2">L</th>
-                <th class="p-2">Prix</th>
+                <th class="p-2">€/L</th>
                 <th class="p-2">Carburant</th>
                 <th class="p-2">Plein</th>
               </tr>
@@ -234,7 +234,7 @@ function goToVehicle() {
                   <td class="p-2">{{ row.item.date }}</td>
                   <td class="p-2">{{ row.item.odometerKm }}</td>
                   <td class="p-2">{{ row.item.quantityLiters }}</td>
-                  <td class="p-2">{{ row.item.totalPrice }}</td>
+                  <td class="p-2">{{ row.item.pricePerLiter }}</td>
                   <td class="p-2">{{ row.item.fuelTypeName }}</td>
                   <td class="p-2">{{ row.item.fullTank ? 'Oui' : 'Non' }}</td>
                 </template>
