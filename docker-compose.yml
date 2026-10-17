@@ -1,3 +1,6 @@
+# Aucun port publié : conso n'est joignable que via Nginx Proxy Manager
+# (réseau externe `proxy_net`), derrière le forward auth Authentik.
+# Prérequis : le réseau `proxy_net` de NPM existe (docker network ls).
 services:
   backend:
     build: ./backend
@@ -5,19 +8,29 @@ services:
     environment:
       DATABASE_URL: "file:/app/data/conso.db"
       UPLOADS_DIR: "/app/data/uploads"
+      AUTH_REQUIRED: "true"
+      AUTH_REQUIRED_GROUP: "conso-users"
     volumes:
       - conso_data:/app/data
+    networks:
+      - internal # PAS sur `proxy` : seul le frontend peut l'atteindre
 
   frontend:
     build: ./frontend
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "8080:80"
-    # Pour un accès via Internet, pointez votre Nginx Proxy Manager vers ce
-    # service (réseau Docker partagé ou port publié ci-dessus selon votre
-    # configuration NPM existante).
+    networks:
+      internal:
+      proxy:
+        aliases:
+          - conso-frontend # NPM -> http://conso-frontend:80
+
+networks:
+  internal:
+  proxy:
+    external: true
+    name: proxy_net # nom réel du réseau Docker de NPM
 
 volumes:
   conso_data:
