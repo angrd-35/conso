@@ -95,6 +95,7 @@ export interface ConsumptionPoint {
   cost: number
   consumptionL100: number
   costPerKm: number
+  ethanolRate: number | null
 }
 
 export interface VehicleStats {

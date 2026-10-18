@@ -10,6 +10,7 @@ interface ConsumptionPoint {
   cost: number;
   consumptionL100: number;
   costPerKm: number;
+  ethanolRate: number | null;
 }
 
 @Injectable()
@@ -30,7 +31,7 @@ export class StatsService {
           lte: to ? new Date(to) : undefined,
         },
       },
-      include: { components: true },
+      include: { components: { include: { fuelType: true } } },
       orderBy: [{ date: 'asc' }, { odometerKm: 'asc' }],
     });
 
@@ -43,11 +44,19 @@ export class StatsService {
     const history: ConsumptionPoint[] = [];
     let litersAccum = 0;
     let costAccum = 0;
+    let ethanolLiters = 0;
+    let ethanolWeighted = 0;
     let lastFull: { date: Date; odometerKm: number } | null = null;
 
     for (const fillUp of fillUps) {
       litersAccum += fillUp.quantityLiters;
       costAccum += fillUp.totalPrice;
+      for (const c of fillUp.components) {
+        if (c.fuelType.ethanolRate !== null) {
+          ethanolLiters += c.quantityLiters;
+          ethanolWeighted += c.quantityLiters * c.fuelType.ethanolRate;
+        }
+      }
 
       if (fillUp.fullTank) {
         if (lastFull) {
@@ -61,12 +70,15 @@ export class StatsService {
               cost: round(costAccum),
               consumptionL100: round((litersAccum / deltaKm) * 100),
               costPerKm: round(costAccum / deltaKm),
+              ethanolRate: ethanolLiters > 0 ? round(ethanolWeighted / ethanolLiters) : null,
             });
           }
         }
         lastFull = { date: fillUp.date, odometerKm: fillUp.odometerKm };
         litersAccum = 0;
         costAccum = 0;
+        ethanolLiters = 0;
+        ethanolWeighted = 0;
       }
     }
 

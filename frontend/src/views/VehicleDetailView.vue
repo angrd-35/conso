@@ -21,14 +21,42 @@ const error = ref('')
 const photoInput = ref<HTMLInputElement | null>(null)
 const uploadingPhoto = ref(false)
 
+const periods = [
+  { key: '1m', label: '1 mois', months: 1 },
+  { key: '3m', label: '3 mois', months: 3 },
+  { key: '6m', label: '6 mois', months: 6 },
+  { key: '1y', label: '1 an', months: 12 },
+  { key: 'all', label: 'Tout', months: 0 },
+  { key: 'custom', label: 'Perso', months: 0 },
+]
+const period = ref('all')
+const customFrom = ref('')
+const customTo = ref('')
+
+function dateRange(): { from?: string; to?: string } {
+  if (period.value === 'custom') {
+    return {
+      from: customFrom.value || undefined,
+      to: customTo.value ? `${customTo.value}T23:59:59.999Z` : undefined,
+    }
+  }
+  const months = periods.find((p) => p.key === period.value)?.months ?? 0
+  if (!months) return {}
+  const d = new Date()
+  d.setMonth(d.getMonth() - months)
+  return { from: d.toISOString() }
+}
+
+watch([period, customFrom, customTo], load)
+
 const vehicle = computed(() => vehiclesStore.getById(props.id))
 
 async function load() {
-  loading.value = true
+  loading.value = !stats.value
   error.value = ''
   try {
     await Promise.all([vehiclesStore.fetchAll(), vehiclesStore.fetchArchived()])
-    const [statsRes, fillUpsRes] = await Promise.all([statsApi.get(props.id), fillUpsApi.list(props.id)])
+    const [statsRes, fillUpsRes] = await Promise.all([statsApi.get(props.id, dateRange()), fillUpsApi.list(props.id)])
     stats.value = statsRes
     fillUps.value = fillUpsRes.slice().reverse()
   } catch (e) {
@@ -39,7 +67,13 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => props.id, load)
+watch(
+  () => props.id,
+  () => {
+    stats.value = null
+    load()
+  },
+)
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('fr-FR')
@@ -154,6 +188,24 @@ async function removePhoto() {
         <StatCard label="Coût / km" :value="stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)} €/km` : '—'" />
         <StatCard label="Coût total" :value="`${stats.totalCost.toFixed(2)} €`" :sub="`${stats.fillUpsCount} plein(s)`" />
         <StatCard label="Distance totale" :value="`${stats.totalKm} km`" :sub="`${stats.totalLiters} L`" />
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+        <button
+          v-for="p in periods"
+          :key="p.key"
+          type="button"
+          class="rounded-full border px-3 py-1"
+          :class="period === p.key ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 dark:border-gray-700'"
+          @click="period = p.key"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+      <div v-if="period === 'custom'" class="mt-2 flex items-center gap-2 text-sm">
+        <input v-model="customFrom" type="date" class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-700" />
+        <span>→</span>
+        <input v-model="customTo" type="date" class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-700" />
       </div>
 
       <div v-if="stats.history.length" class="mt-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
