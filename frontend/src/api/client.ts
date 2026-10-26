@@ -4,7 +4,7 @@ export const apiClient = axios.create({
   baseURL: '/api',
 })
 
-// Session Authentik expirée : NPM renvoie 401 sur /api. On recharge la page
+// Session Authelia expirée : Traefik/Authelia renvoie 401 sur /api. On recharge la page
 // pour relancer le flux de connexion (pas de reload sur erreur réseau : la PWA
 // peut être hors ligne).
 apiClient.interceptors.response.use(

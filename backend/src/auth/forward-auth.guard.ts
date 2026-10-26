@@ -7,19 +7,19 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import type { AuthentikUser } from './authentik-user.js';
+import type { ForwardAuthUser } from './forward-auth-user.js';
 import type { RequestWithUser } from './current-user.decorator.js';
 import { IS_PUBLIC_KEY } from './public.decorator.js';
 
 /**
- * Identifie l'utilisateur via les headers posés par Nginx Proxy Manager
- * (forward auth Authentik) et vérifie son appartenance au groupe requis.
+ * Identifie l'utilisateur via les headers Remote-* posés par le middleware
+ * forward-auth Authelia (via Traefik) et vérifie son appartenance au groupe requis.
  *
  * Sécurité : ces headers ne sont dignes de confiance que si le backend n'est
- * joignable QUE via NPM (aucun port publié, réseau Docker privé).
+ * joignable QUE via Traefik (aucun port publié, réseau Docker privé).
  */
 @Injectable()
-export class AuthentikGuard implements CanActivate {
+export class ForwardAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly config: ConfigService,
@@ -43,17 +43,17 @@ export class AuthentikGuard implements CanActivate {
       return true;
     }
 
-    const username = this.header(req, 'x-authentik-username');
+    const username = this.header(req, 'remote-user');
     if (!username) {
       throw new UnauthorizedException('Non authentifié');
     }
 
-    const user: AuthentikUser = {
+    const user: ForwardAuthUser = {
       username,
-      email: this.header(req, 'x-authentik-email'),
-      name: this.header(req, 'x-authentik-name'),
-      groups: (this.header(req, 'x-authentik-groups') ?? '')
-        .split('|')
+      email: this.header(req, 'remote-email'),
+      name: this.header(req, 'remote-name'),
+      groups: (this.header(req, 'remote-groups') ?? '')
+        .split(',')
         .map((g) => g.trim())
         .filter(Boolean),
     };

@@ -1,4 +1,4 @@
-export interface AuthentikUser {
+export interface ForwardAuthUser {
   username: string;
   email?: string;
   name?: string;

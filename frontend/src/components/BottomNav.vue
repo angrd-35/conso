@@ -36,9 +36,9 @@ function isActive(name: string) {
       </svg>
       Carburants
     </router-link>
-    <!-- Navigation complète (pas router-link) : l'outpost Authentik, exposé par NPM, invalide la session -->
+    <!-- Navigation complète (pas router-link) : on quitte l'app pour le logout du portail Authelia -->
     <a
-      href="/outpost.goauthentik.io/sign_out"
+      href="https://auth.angrd.ovh/logout?rd=https://conso.angrd.ovh"
       class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-6">

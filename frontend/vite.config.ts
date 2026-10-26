@@ -26,7 +26,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/api/, /^\/outpost\.goauthentik\.io/],
+        navigateFallbackDenylist: [/^\/api/],
       },
     }),
   ],

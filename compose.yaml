@@ -1,0 +1,42 @@
+# À déployer dans /opt/stacks/apps/conso (réseau externe `proxy` géré par Traefik).
+# Aucun port publié : seul Traefik est exposé. Le backend n'est PAS sur `proxy`,
+# car il fait confiance aux en-têtes Remote-* : il ne doit être joignable que
+# via le frontend, lui-même derrière le middleware authelia@docker.
+# Tag à renseigner dans .env (CONSO_TAG=sha-xxxxxxx ou vX.Y.Z), jamais `latest`.
+services:
+  conso-backend:
+    image: ghcr.io/angrd-35/conso-backend:${CONSO_TAG:?définir CONSO_TAG dans .env}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "file:/app/data/conso.db"
+      UPLOADS_DIR: "/app/data/uploads"
+      AUTH_REQUIRED: "true"
+      AUTH_REQUIRED_GROUP: "conso-users"
+    volumes:
+      - conso_data:/app/data
+    networks:
+      - internal
+
+  conso-frontend:
+    image: ghcr.io/angrd-35/conso-frontend:${CONSO_TAG:?définir CONSO_TAG dans .env}
+    restart: unless-stopped
+    depends_on:
+      - conso-backend
+    networks:
+      - internal
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      traefik.http.routers.conso.rule: "Host(`conso.angrd.ovh`)"
+      traefik.http.routers.conso.entrypoints: "websecure"
+      traefik.http.routers.conso.middlewares: "authelia@docker"
+      traefik.http.services.conso.loadbalancer.server.port: "8080"
+
+networks:
+  internal:
+  proxy:
+    external: true
+
+volumes:
+  conso_data:
